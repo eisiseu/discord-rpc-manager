@@ -1,7 +1,8 @@
-const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog } = require('electron');
 const path = require('path');
 const RPC = require('discord-rpc');
 const Store = require('electron-store');
+const https = require('node:https');
 
 const store = new Store({
   defaults: {
@@ -436,6 +437,12 @@ ipcMain.handle('window-maximize', () => {
 });
 ipcMain.handle('window-close', () => mainWindow?.close());
 
+// Open URL in default browser
+ipcMain.handle('shell-open-external', (_, url) => {
+  const { shell } = require('electron');
+  return shell.openExternal(url);
+});
+
 // Launch on startup
 ipcMain.handle('get-launch-on-startup', () => {
   return app.getLoginItemSettings().openAtLogin;
@@ -481,7 +488,61 @@ app.whenReady().then(() => {
 
   const autoDetect = store.get('autoDetect');
   if (autoDetect.enabled) startProcessDetection();
+
+  // Check for updates after 3 seconds
+  setTimeout(checkForUpdates, 3000);
 });
+
+// Auto-update check via GitHub Releases
+function checkForUpdates() {
+  const currentVersion = app.getVersion();
+  const options = {
+    hostname: 'api.github.com',
+    path: '/repos/eisiseu/discord-rpc-manager/releases/latest',
+    headers: { 'User-Agent': 'Discord-RPC-Manager' },
+  };
+
+  const req = https.get(options, (res) => {
+    let data = '';
+    res.on('data', (chunk) => { data += chunk; });
+    res.on('end', () => {
+      try {
+        const release = JSON.parse(data);
+        const latestVersion = (release.tag_name || '').replace('v', '');
+        if (!latestVersion || latestVersion === currentVersion) return;
+
+        // Compare versions
+        const current = currentVersion.split('.').map(Number);
+        const latest = latestVersion.split('.').map(Number);
+        const isNewer = latest[0] > current[0] ||
+          (latest[0] === current[0] && latest[1] > current[1]) ||
+          (latest[0] === current[0] && latest[1] === current[1] && latest[2] > current[2]);
+
+        if (!isNewer) return;
+
+        // Find installer asset
+        const asset = (release.assets || []).find(a => a.name.endsWith('.exe'));
+        const downloadUrl = asset?.browser_download_url || release.html_url;
+
+        dialog.showMessageBox(mainWindow, {
+          type: 'info',
+          title: '업데이트 알림',
+          message: `새 버전 v${latestVersion}이 있습니다. (현재: v${currentVersion})`,
+          detail: release.body?.substring(0, 300) || '',
+          buttons: ['다운로드', '나중에'],
+          defaultId: 0,
+        }).then(({ response }) => {
+          if (response === 0) {
+            const { shell } = require('electron');
+            shell.openExternal(downloadUrl);
+          }
+        });
+      } catch { /* ignore parse errors */ }
+    });
+  });
+  req.on('error', () => { /* ignore network errors */ });
+  req.setTimeout(10000, () => req.destroy());
+}
 
 app.on('before-quit', () => {
   app.isQuitting = true;

@@ -1,7 +1,7 @@
 const defaultPresets = [
   {
     name: 'MotionBuilder',
-    category: '3D / Animation',
+    category: 'animation',
     details: 'MotionBuilder',
     state: '작업중',
     largeImageKey: 'motionbuilder',
@@ -13,7 +13,7 @@ const defaultPresets = [
   },
   {
     name: 'Maya',
-    category: '3D / Animation',
+    category: 'animation',
     details: 'Maya',
     state: '작업중',
     largeImageKey: 'maya',
@@ -25,7 +25,7 @@ const defaultPresets = [
   },
   {
     name: 'Blender',
-    category: '3D / Animation',
+    category: 'animation',
     details: 'Blender',
     state: '작업중',
     largeImageKey: 'blender',
@@ -37,7 +37,7 @@ const defaultPresets = [
   },
   {
     name: 'Unreal Engine',
-    category: 'Game Engine',
+    category: 'gameEngine',
     details: 'Unreal Engine 5',
     state: '작업중',
     largeImageKey: 'unreal',
@@ -49,7 +49,7 @@ const defaultPresets = [
   },
   {
     name: 'Unity',
-    category: 'Game Engine',
+    category: 'gameEngine',
     details: 'Unity',
     state: '작업중',
     largeImageKey: 'unity',
@@ -61,7 +61,7 @@ const defaultPresets = [
   },
   {
     name: 'Photoshop',
-    category: 'Design',
+    category: 'design',
     details: 'Photoshop',
     state: '작업중',
     largeImageKey: 'photoshop',
@@ -73,7 +73,7 @@ const defaultPresets = [
   },
   {
     name: 'After Effects',
-    category: 'Design',
+    category: 'video',
     details: 'After Effects',
     state: '작업중',
     largeImageKey: 'aftereffects',
@@ -85,7 +85,7 @@ const defaultPresets = [
   },
   {
     name: 'Premiere Pro',
-    category: 'Design',
+    category: 'video',
     details: 'Premiere Pro',
     state: '작업중',
     largeImageKey: 'premiere',
@@ -97,7 +97,7 @@ const defaultPresets = [
   },
   {
     name: 'Visual Studio Code',
-    category: 'Development',
+    category: 'development',
     details: 'VS Code',
     state: '작업중',
     largeImageKey: 'vscode',
@@ -109,7 +109,7 @@ const defaultPresets = [
   },
   {
     name: '3ds Max',
-    category: '3D / Animation',
+    category: 'animation',
     details: '3ds Max',
     state: '작업중',
     largeImageKey: '3dsmax',
@@ -121,7 +121,7 @@ const defaultPresets = [
   },
   {
     name: 'ZBrush',
-    category: '3D / Animation',
+    category: 'animation',
     details: 'ZBrush',
     state: '작업중',
     largeImageKey: 'zbrush',
@@ -133,7 +133,7 @@ const defaultPresets = [
   },
   {
     name: 'Substance Painter',
-    category: '3D / Animation',
+    category: 'animation',
     details: 'Substance Painter',
     state: '작업중',
     largeImageKey: 'substance',
@@ -145,7 +145,7 @@ const defaultPresets = [
   },
   {
     name: 'Figma',
-    category: 'Design',
+    category: 'design',
     details: 'Figma',
     state: '작업중',
     largeImageKey: 'figma',
@@ -157,7 +157,7 @@ const defaultPresets = [
   },
   {
     name: 'DaVinci Resolve',
-    category: 'Design',
+    category: 'video',
     details: 'DaVinci Resolve',
     state: '작업중',
     largeImageKey: 'davinci',
@@ -169,6 +169,6 @@ const defaultPresets = [
   },
 ];
 
-export const presetCategories = [...new Set(defaultPresets.map((p) => p.category))];
+export const presetCategoryKeys = [...new Set(defaultPresets.map((p) => p.category))];
 
 export default defaultPresets;

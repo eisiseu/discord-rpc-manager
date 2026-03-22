@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer, shell } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // Store
@@ -45,8 +45,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Discord app name lookup
   getDiscordAppName: (clientId) => ipcRenderer.invoke('get-discord-app-name', clientId),
 
-  // Shell
+  // Shell - open URL in default browser via IPC
   shell: {
-    openExternal: (url) => shell.openExternal(url),
+    openExternal: (url) => ipcRenderer.invoke('shell-open-external', url),
   },
 });

@@ -92,7 +92,15 @@ export default {
     alreadyAdded: 'Already added',
     added: 'Activity added',
     alreadyAddedMsg: ' is already added',
+    defaultState: 'Working',
     noResults: 'No results found',
+    categories: {
+      animation: '3D / Animation',
+      gameEngine: 'Game Engine',
+      design: 'Design',
+      video: 'Video',
+      development: 'Development',
+    },
   },
   profiles: {
     title: 'Profile Manager',

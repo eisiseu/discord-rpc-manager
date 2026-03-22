@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import PresetCard from './PresetCard';
-import defaultPresets, { presetCategories } from '../../data/defaultPresets';
+import defaultPresets, { presetCategoryKeys } from '../../data/defaultPresets';
 import useLangStore from '../../store/langStore';
 
 export default function PresetGrid() {
@@ -30,13 +30,13 @@ export default function PresetGrid() {
           >
             {t.presets.all}
           </button>
-          {presetCategories.map((cat) => (
+          {presetCategoryKeys.map((key) => (
             <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={selectedCategory === cat ? 'btn-primary text-xs px-3 py-1.5' : 'btn-ghost text-xs px-3 py-1.5'}
+              key={key}
+              onClick={() => setSelectedCategory(key)}
+              className={selectedCategory === key ? 'btn-primary text-xs px-3 py-1.5' : 'btn-ghost text-xs px-3 py-1.5'}
             >
-              {cat}
+              {t.presets.categories?.[key] || key}
             </button>
           ))}
         </div>

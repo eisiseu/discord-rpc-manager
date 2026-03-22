@@ -92,7 +92,15 @@ export default {
     alreadyAdded: '已添加',
     added: '活动已添加',
     alreadyAddedMsg: ' 已经添加过了',
+    defaultState: '工作中',
     noResults: '未找到结果',
+    categories: {
+      animation: '3D / 动画',
+      gameEngine: '游戏引擎',
+      design: '设计',
+      video: '视频',
+      development: '开发',
+    },
   },
   profiles: {
     title: '配置文件管理',

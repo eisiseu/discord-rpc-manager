@@ -98,7 +98,15 @@ export default {
     alreadyAdded: '이미 추가됨',
     added: '활동이 추가되었습니다',
     alreadyAddedMsg: '은 이미 추가되어 있습니다',
+    defaultState: '작업중',
     noResults: '검색 결과가 없습니다',
+    categories: {
+      animation: '3D / 애니메이션',
+      gameEngine: '게임 엔진',
+      design: '디자인',
+      video: '영상',
+      development: '개발',
+    },
   },
   // Profiles
   profiles: {

@@ -1,6 +1,6 @@
 {
   "name": "discord-rpc-manager",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Discord Rich Presence Manager - Custom Activity Dashboard",
   "main": "electron/main.js",
   "scripts": {
@@ -42,7 +42,14 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "installerLanguages": ["ko-KR", "en-US", "ja-JP", "zh-CN"],
+      "language": "1042"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "eisiseu",
+      "repo": "discord-rpc-manager"
     }
   }
 }

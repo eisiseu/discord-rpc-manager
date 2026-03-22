@@ -16,7 +16,7 @@ export default function PresetCard({ preset }) {
       return;
     }
     const { category, ...activityData } = preset;
-    addActivity(activityData);
+    addActivity({ ...activityData, state: t.presets.defaultState || activityData.state });
     showToast(`"${preset.name}" ${t.presets.added}`);
   };
 
@@ -31,9 +31,9 @@ export default function PresetCard({ preset }) {
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-white truncate">{preset.name}</h3>
-          <p className="text-xs text-gray-400 truncate">{preset.details}</p>
+          <p className="text-xs text-gray-400 truncate">{preset.details} · {t.presets.defaultState || preset.state}</p>
           <span className="inline-block mt-1.5 px-2 py-0.5 bg-dark-400/50 rounded-md text-[10px] text-gray-500">
-            {preset.category}
+            {t.presets.categories?.[preset.category] || preset.category}
           </span>
         </div>
         <button

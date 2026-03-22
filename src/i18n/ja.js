@@ -92,7 +92,15 @@ export default {
     alreadyAdded: '追加済み',
     added: 'アクティビティを追加しました',
     alreadyAddedMsg: 'はすでに追加されています',
+    defaultState: '作業中',
     noResults: '結果が見つかりません',
+    categories: {
+      animation: '3D / アニメーション',
+      gameEngine: 'ゲームエンジン',
+      design: 'デザイン',
+      video: '映像',
+      development: '開発',
+    },
   },
   profiles: {
     title: 'プロフィール管理',
