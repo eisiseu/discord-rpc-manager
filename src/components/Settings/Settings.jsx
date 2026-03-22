@@ -17,8 +17,12 @@ export default function SettingsPanel() {
   const { t, lang, setLang } = useLangStore();
   const [localClientId, setLocalClientId] = useState(clientId);
   const [showClientId, setShowClientId] = useState(false);
+  const [launchOnStartup, setLaunchOnStartup] = useState(false);
 
   useEffect(() => { setLocalClientId(clientId); }, [clientId]);
+  useEffect(() => {
+    if (api?.getLaunchOnStartup) api.getLaunchOnStartup().then(setLaunchOnStartup);
+  }, []);
 
   const handleSaveClientId = () => setClientId(localClientId.trim());
 
@@ -96,6 +100,26 @@ export default function SettingsPanel() {
             >
               {rpcConnected ? t.settings.disconnect : t.settings.connect}
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Launch on Startup */}
+      <div className="glass-card p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-white">Windows 시작 시 자동 실행</h3>
+            <p className="text-xs text-gray-500 mt-0.5">컴퓨터를 켜면 App Profile이 자동으로 시작됩니다</p>
+          </div>
+          <div
+            className={`w-10 h-5 rounded-full relative transition-colors cursor-pointer ${launchOnStartup ? 'bg-accent-blue' : 'bg-dark-400'}`}
+            onClick={() => {
+              const next = !launchOnStartup;
+              setLaunchOnStartup(next);
+              if (api?.setLaunchOnStartup) api.setLaunchOnStartup(next);
+            }}
+          >
+            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${launchOnStartup ? 'translate-x-5' : 'translate-x-0.5'}`} />
           </div>
         </div>
       </div>

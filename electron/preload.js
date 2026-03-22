@@ -38,6 +38,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAppIcon: (processName) => ipcRenderer.invoke('get-app-icon', processName),
   getAppIconsBatch: (processNames) => ipcRenderer.invoke('get-app-icons-batch', processNames),
 
+  // Launch on startup
+  getLaunchOnStartup: () => ipcRenderer.invoke('get-launch-on-startup'),
+  setLaunchOnStartup: (enabled) => ipcRenderer.invoke('set-launch-on-startup', enabled),
+
   // Discord app name lookup
   getDiscordAppName: (clientId) => ipcRenderer.invoke('get-discord-app-name', clientId),
 

@@ -37,7 +37,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
-    icon: path.join(__dirname, '..', 'public', 'icon.svg'),
+    icon: path.join(__dirname, '..', 'public', 'tray-icon.png'),
   });
 
   // 모든 외부 링크는 기본 브라우저로 열기
@@ -75,7 +75,7 @@ function createWindow() {
 function createTray() {
   let icon;
   try {
-    icon = nativeImage.createFromPath(path.join(__dirname, '..', 'public', 'icon.svg'));
+    icon = nativeImage.createFromPath(path.join(__dirname, '..', 'public', 'tray-icon.png'));
     if (icon.isEmpty()) icon = nativeImage.createEmpty();
   } catch {
     icon = nativeImage.createEmpty();
@@ -436,6 +436,16 @@ ipcMain.handle('window-maximize', () => {
 });
 ipcMain.handle('window-close', () => mainWindow?.close());
 
+// Launch on startup
+ipcMain.handle('get-launch-on-startup', () => {
+  return app.getLoginItemSettings().openAtLogin;
+});
+ipcMain.handle('set-launch-on-startup', (_, enabled) => {
+  app.setLoginItemSettings({ openAtLogin: enabled });
+  store.set('launchOnStartup', enabled);
+  return true;
+});
+
 // Fetch Discord app name from Client ID
 ipcMain.handle('get-discord-app-name', async (_, clientId) => {
   if (!clientId || clientId.length < 10) return null;
@@ -461,6 +471,10 @@ ipcMain.handle('get-discord-app-name', async (_, clientId) => {
 app.whenReady().then(() => {
   createWindow();
   createTray();
+
+  // Apply launch on startup setting
+  const launchOnStartup = store.get('launchOnStartup');
+  app.setLoginItemSettings({ openAtLogin: !!launchOnStartup });
 
   const clientId = store.get('clientId');
   if (clientId) connectRPC();
