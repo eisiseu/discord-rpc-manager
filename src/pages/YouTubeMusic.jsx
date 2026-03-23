@@ -43,14 +43,26 @@ export default function YouTubeMusic() {
     <div className="space-y-6">
       {/* Header */}
       <div className="glass-card p-6 bg-gradient-to-br from-red-500/10 to-red-900/5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
-            <HiOutlineMusicNote className="w-5 h-5 text-red-400" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
+              <HiOutlineMusicNote className="w-5 h-5 text-red-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">{yt.title || 'YouTube Music'}</h2>
+              <p className="text-sm text-gray-400">{yt.subtitle || 'Share your music to Discord'}</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-white">{yt.title || 'YouTube Music'}</h2>
-            <p className="text-sm text-gray-400">{yt.subtitle || 'Share your music to Discord'}</p>
-          </div>
+          <button
+            onClick={handleToggle}
+            className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
+              ytMusicServerRunning
+                ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
+                : 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30'
+            }`}
+          >
+            {ytMusicServerRunning ? (yt.disable || '비활성화') : (yt.enable || '활성화')}
+          </button>
         </div>
       </div>
 
@@ -106,25 +118,6 @@ export default function YouTubeMusic() {
 
       <div className="grid grid-cols-[1fr,280px] gap-6">
         <div className="space-y-4">
-          {/* Toggle Server */}
-          <div className="glass-card p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-white">{yt.serverToggle || 'HTTP Server'}</h3>
-                <p className="text-xs text-gray-500 mt-0.5">{yt.serverDesc || 'Receive data from Chrome extension'}</p>
-              </div>
-              <button
-                onClick={handleToggle}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  ytMusicServerRunning ? 'bg-red-500' : 'bg-gray-600'
-                }`}
-              >
-                <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
-                  ytMusicServerRunning ? 'translate-x-6' : 'translate-x-0.5'
-                }`} />
-              </button>
-            </div>
-          </div>
 
           {/* Now Playing */}
           {track && track.title ? (
