@@ -749,50 +749,61 @@ app.whenReady().then(() => {
 });
 
 // Auto-update via electron-updater
+// Auto-update listeners registered once at startup
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = false;
+
+autoUpdater.on('update-available', (info) => {
+  dialog.showMessageBox(mainWindow, {
+    type: 'info',
+    title: '업데이트 알림',
+    message: `새 버전 v${info.version}이 있습니다. (현재: v${app.getVersion()})`,
+    detail: '업데이트를 다운로드하시겠습니까?\n다운로드 후 앱이 재시작됩니다.',
+    buttons: ['업데이트', '나중에'],
+    defaultId: 0,
+  }).then(({ response }) => {
+    if (response === 0) {
+      mainWindow?.webContents.send('update-status', { status: 'downloading', version: info.version });
+      autoUpdater.downloadUpdate().catch((err) => {
+        console.error('[AutoUpdate] Download error:', err.message);
+      });
+    }
+  });
+});
+
+autoUpdater.on('download-progress', (progress) => {
+  mainWindow?.webContents.send('update-status', {
+    status: 'downloading',
+    percent: Math.round(progress.percent),
+  });
+});
+
+autoUpdater.on('update-downloaded', () => {
+  dialog.showMessageBox(mainWindow, {
+    type: 'info',
+    title: '업데이트 준비 완료',
+    message: '다운로드가 완료되었습니다. 지금 재시작하여 설치하시겠습니까?',
+    buttons: ['지금 재시작', '나중에'],
+    defaultId: 0,
+  }).then(({ response }) => {
+    if (response === 0) {
+      // Force quit then install — ensure app fully closes before installer runs
+      app.isQuitting = true;
+      stopYtMusicServer();
+      if (rpcClient) {
+        try { rpcClient.destroy(); } catch {}
+        rpcClient = null;
+      }
+      setImmediate(() => autoUpdater.quitAndInstall(true, true));
+    }
+  });
+});
+
+autoUpdater.on('error', (err) => {
+  console.error('[AutoUpdate] Error:', err.message);
+});
+
 function checkForUpdates() {
-  autoUpdater.autoDownload = false;
-  autoUpdater.autoInstallOnAppQuit = true;
-
-  autoUpdater.on('update-available', (info) => {
-    dialog.showMessageBox(mainWindow, {
-      type: 'info',
-      title: '업데이트 알림',
-      message: `새 버전 v${info.version}이 있습니다. (현재: v${app.getVersion()})`,
-      buttons: ['업데이트', '나중에'],
-      defaultId: 0,
-    }).then(({ response }) => {
-      if (response === 0) {
-        autoUpdater.downloadUpdate();
-        mainWindow?.webContents.send('update-status', { status: 'downloading', version: info.version });
-      }
-    });
-  });
-
-  autoUpdater.on('download-progress', (progress) => {
-    mainWindow?.webContents.send('update-status', {
-      status: 'downloading',
-      percent: Math.round(progress.percent),
-    });
-  });
-
-  autoUpdater.on('update-downloaded', () => {
-    dialog.showMessageBox(mainWindow, {
-      type: 'info',
-      title: '업데이트 준비 완료',
-      message: '업데이트가 다운로드되었습니다. 지금 재시작하시겠습니까?',
-      buttons: ['지금 재시작', '나중에'],
-      defaultId: 0,
-    }).then(({ response }) => {
-      if (response === 0) {
-        autoUpdater.quitAndInstall();
-      }
-    });
-  });
-
-  autoUpdater.on('error', (err) => {
-    console.error('[AutoUpdate] Error:', err.message);
-  });
-
   autoUpdater.checkForUpdates().catch(() => {});
 }
 
