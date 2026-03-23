@@ -206,6 +206,7 @@ async function connectRPC(overrideClientId = null) {
 
     rpcClient.on('disconnected', () => {
       rpcConnected = false;
+      rpcConnecting = false;
       currentRpcClientId = null;
       mainWindow?.webContents.send('rpc-status', { connected: false });
     });
@@ -219,13 +220,18 @@ async function connectRPC(overrideClientId = null) {
   }
 }
 
-function disconnectRPC() {
+async function disconnectRPC() {
   if (rpcClient) {
-    rpcClient.clearActivity();
-    rpcClient.destroy();
+    try {
+      await rpcClient.clearActivity();
+      // Wait for Discord to process the clear before destroying
+      await new Promise(r => setTimeout(r, 300));
+    } catch { /* ignore */ }
+    try { rpcClient.destroy(); } catch { /* ignore */ }
     rpcClient = null;
   }
   rpcConnected = false;
+  rpcConnecting = false;
   currentRpcClientId = null;
   mainWindow?.webContents.send('rpc-status', { connected: false });
   updateTrayMenu();
@@ -463,13 +469,16 @@ async function updateYtMusicPresence(track) {
   }
   console.log('[YTMusic] Using Client ID:', targetClientId, '| Connected:', rpcConnected, '| Current:', currentRpcClientId);
 
-  // Reconnect with YouTube Music Client ID if needed
+  // Only update if RPC is already connected — don't auto-reconnect
+  // (user may have manually disconnected)
+  if (!rpcClient || !rpcConnected) return;
+
+  // Switch Client ID if needed
   if (targetClientId !== currentRpcClientId) {
     await connectRPC(targetClientId);
     await new Promise(r => setTimeout(r, 500));
+    if (!rpcClient || !rpcConnected) return;
   }
-
-  if (!rpcClient || !rpcConnected) return;
 
   const presence = {};
 

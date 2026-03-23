@@ -206,22 +206,20 @@ export default function YouTubeMusic() {
                 {/* Client ID */}
                 <div>
                   <label className="text-xs text-gray-400 block mb-1">{yt.clientIdLabel || 'Discord Client ID (YouTube Music)'}</label>
-                  <div className="relative">
+                  <div className="relative" onClick={() => !showClientId && ytMusic.clientId && setShowClientId(true)}>
                     <input
                       type="text"
                       value={editClientId}
                       onChange={(e) => setEditClientId(e.target.value)}
                       onFocus={() => setShowClientId(true)}
+                      onBlur={() => setTimeout(() => setShowClientId(false), 200)}
                       placeholder={yt.clientIdPlaceholder || 'Leave empty to use default'}
-                      className={`input-field w-full ${editClientId && !showClientId ? 'blur-sm select-none pointer-events-none' : ''}`}
+                      className={`input-field w-full ${ytMusic.clientId && !showClientId ? 'blur-sm select-none pointer-events-none' : ''}`}
                     />
-                    {editClientId && !showClientId && (
-                      <button
-                        onClick={() => setShowClientId(true)}
-                        className="absolute inset-0 flex items-center justify-center text-xs text-gray-400 hover:text-white transition-colors"
-                      >
-                        Click to reveal
-                      </button>
+                    {ytMusic.clientId && !showClientId && (
+                      <div className="absolute inset-0 flex items-center justify-center cursor-pointer rounded-xl">
+                        <span className="text-xs text-gray-400">Click to reveal</span>
+                      </div>
                     )}
                   </div>
                 </div>
