@@ -16,6 +16,12 @@ const useAppStore = create((set, get) => ({
   currentActivityIndex: -1,
   autoDetect: { enabled: false, mappings: [], interval: 5000 },
 
+  // YouTube Music State
+  ytMusic: { enabled: false, port: 8686, clientId: '', showAlbumArt: true, showTimer: true, buttons: [] },
+  ytMusicServerRunning: false,
+  ytMusicCurrentTrack: null,
+  ytMusicExtensionConnected: false,
+
   // UI State
   currentPage: 'dashboard',
   editingActivity: null,
@@ -24,7 +30,7 @@ const useAppStore = create((set, get) => ({
   // Init
   init: async () => {
     if (!api) return;
-    const [clientId, activities, profiles, activeProfileId, currentActivityIndex, autoDetect, status] =
+    const [clientId, activities, profiles, activeProfileId, currentActivityIndex, autoDetect, status, ytMusic, ytMusicStatus] =
       await Promise.all([
         api.getStore('clientId'),
         api.getStore('activities'),
@@ -33,6 +39,8 @@ const useAppStore = create((set, get) => ({
         api.getStore('currentActivityIndex'),
         api.getStore('autoDetect'),
         api.rpcGetStatus(),
+        api.getStore('ytMusic'),
+        api.ytMusicGetStatus(),
       ]);
 
     set({
@@ -44,6 +52,10 @@ const useAppStore = create((set, get) => ({
       autoDetect: autoDetect || { enabled: false, mappings: [], interval: 5000 },
       rpcConnected: status.connected,
       rpcUser: status.user,
+      ytMusic: ytMusic || { enabled: false, port: 8686, clientId: '', showAlbumArt: true, showTimer: true, buttons: [] },
+      ytMusicServerRunning: ytMusicStatus?.running || false,
+      ytMusicCurrentTrack: ytMusicStatus?.currentTrack || null,
+      ytMusicExtensionConnected: ytMusicStatus?.extensionConnected || false,
     });
 
     api.onRpcStatus((data) => {
@@ -51,6 +63,15 @@ const useAppStore = create((set, get) => ({
     });
     api.onActivityChanged((index) => {
       set({ currentActivityIndex: index });
+    });
+    api.onYtMusicUpdate((data) => {
+      set({ ytMusicCurrentTrack: data });
+    });
+    api.onYtMusicServerStatus((data) => {
+      set({ ytMusicServerRunning: data.running });
+    });
+    api.onYtMusicExtensionStatus((connected) => {
+      set({ ytMusicExtensionConnected: connected });
     });
   },
 
@@ -171,6 +192,29 @@ const useAppStore = create((set, get) => ({
       if (config.enabled) await api.processDetectStart();
       else await api.processDetectStop();
     }
+  },
+
+  // YouTube Music
+  ytMusicToggleServer: async (enabled) => {
+    if (!api) return;
+    if (enabled) {
+      await api.ytMusicStart();
+      const config = get().ytMusic;
+      await api.ytMusicSetConfig({ ...config, enabled: true });
+      set({ ytMusic: { ...config, enabled: true }, ytMusicServerRunning: true });
+    } else {
+      await api.ytMusicStop();
+      const config = get().ytMusic;
+      await api.ytMusicSetConfig({ ...config, enabled: false });
+      set({ ytMusic: { ...config, enabled: false }, ytMusicServerRunning: false, ytMusicCurrentTrack: null });
+    }
+  },
+
+  ytMusicUpdateConfig: async (updates) => {
+    if (!api) return;
+    const config = { ...get().ytMusic, ...updates };
+    const result = await api.ytMusicSetConfig(updates);
+    set({ ytMusic: result || config });
   },
 }));
 

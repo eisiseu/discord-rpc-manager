@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog } = require('electron');
 const path = require('path');
+const http = require('node:http');
 const RPC = require('discord-rpc');
 const Store = require('electron-store');
 const https = require('node:https');
@@ -14,6 +15,14 @@ const store = new Store({
     autoDetect: { enabled: false, mappings: [], interval: 5000 },
     launchOnStartup: false,
     minimizeToTray: true,
+    ytMusic: {
+      enabled: false,
+      port: 8686,
+      clientId: '',
+      showAlbumArt: true,
+      showTimer: true,
+      buttons: [],
+    },
   },
 });
 
@@ -23,6 +32,15 @@ let rpcClient = null;
 let rpcConnected = false;
 let processDetectorInterval = null;
 let currentRpcClientId = null; // Track which Client ID is currently connected
+
+// YouTube Music HTTP Server
+let ytMusicServer = null;
+let ytMusicCurrentTrack = null;
+let ytMusicServerRunning = false;
+let ytMusicLastUpdate = 0;
+let ytMusicStaleTimer = null;
+let ytMusicExtensionConnected = false;
+let ytMusicExtensionTimer = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -309,6 +327,189 @@ function stopProcessDetection() {
   }
 }
 
+// ── YouTube Music HTTP Server ──────────────────────────────────────
+function startYtMusicServer() {
+  const config = store.get('ytMusic');
+  const port = config.port || 8686;
+
+  if (ytMusicServer) stopYtMusicServer();
+
+  ytMusicServer = http.createServer((req, res) => {
+    // CORS headers for Chrome extension
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/ytmusic') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+
+          // Mark extension as connected
+          if (!ytMusicExtensionConnected) {
+            ytMusicExtensionConnected = true;
+            mainWindow?.webContents.send('ytmusic-extension-status', true);
+          }
+          // Reset extension disconnect timer (6 seconds without data = disconnected)
+          if (ytMusicExtensionTimer) clearTimeout(ytMusicExtensionTimer);
+          ytMusicExtensionTimer = setTimeout(() => {
+            ytMusicExtensionConnected = false;
+            mainWindow?.webContents.send('ytmusic-extension-status', false);
+          }, 6000);
+
+          if (data.stopped) {
+            // Playback stopped
+            ytMusicCurrentTrack = null;
+            ytMusicLastUpdate = 0;
+            clearYtMusicPresence();
+            mainWindow?.webContents.send('ytmusic-update', null);
+          } else {
+            ytMusicCurrentTrack = data;
+            ytMusicLastUpdate = Date.now();
+            updateYtMusicPresence(data);
+            mainWindow?.webContents.send('ytmusic-update', data);
+
+            // Reset stale timer
+            if (ytMusicStaleTimer) clearTimeout(ytMusicStaleTimer);
+            ytMusicStaleTimer = setTimeout(() => {
+              // No update for 10 seconds → clear presence
+              if (Date.now() - ytMusicLastUpdate >= 10000) {
+                ytMusicCurrentTrack = null;
+                clearYtMusicPresence();
+                mainWindow?.webContents.send('ytmusic-update', null);
+              }
+            }, 10000);
+          }
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true }));
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        }
+      });
+      return;
+    }
+
+    if (req.method === 'GET' && req.url === '/ytmusic/status') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        running: true,
+        currentTrack: ytMusicCurrentTrack,
+        rpcConnected,
+      }));
+      return;
+    }
+
+    res.writeHead(404);
+    res.end('Not Found');
+  });
+
+  ytMusicServer.listen(port, '127.0.0.1', () => {
+    ytMusicServerRunning = true;
+    console.log(`[YTMusic] HTTP server listening on 127.0.0.1:${port}`);
+    mainWindow?.webContents.send('ytmusic-server-status', { running: true, port });
+  });
+
+  ytMusicServer.on('error', (err) => {
+    console.error('[YTMusic] Server error:', err.message);
+    ytMusicServerRunning = false;
+    mainWindow?.webContents.send('ytmusic-server-status', { running: false, error: err.message });
+  });
+}
+
+function stopYtMusicServer() {
+  if (ytMusicStaleTimer) { clearTimeout(ytMusicStaleTimer); ytMusicStaleTimer = null; }
+  if (ytMusicExtensionTimer) { clearTimeout(ytMusicExtensionTimer); ytMusicExtensionTimer = null; }
+  if (ytMusicServer) {
+    ytMusicServer.close();
+    ytMusicServer = null;
+  }
+  ytMusicServerRunning = false;
+  ytMusicCurrentTrack = null;
+  ytMusicExtensionConnected = false;
+  clearYtMusicPresence();
+  mainWindow?.webContents.send('ytmusic-server-status', { running: false });
+  mainWindow?.webContents.send('ytmusic-extension-status', false);
+  console.log('[YTMusic] Server stopped');
+}
+
+async function updateYtMusicPresence(track) {
+  if (!track || !track.isPlaying) {
+    clearYtMusicPresence();
+    return;
+  }
+
+  const config = store.get('ytMusic');
+  const targetClientId = config.clientId || store.get('clientId');
+  if (!targetClientId) return;
+
+  // Reconnect with YouTube Music Client ID if needed
+  if (targetClientId !== currentRpcClientId) {
+    await connectRPC(targetClientId);
+    await new Promise(r => setTimeout(r, 500));
+  }
+
+  if (!rpcClient || !rpcConnected) return;
+
+  const presence = {};
+
+  const details = sanitize(track.title);
+  const state = sanitize(track.artist);
+  if (details) presence.details = details;
+  if (state) presence.state = state;
+
+  // Show elapsed time
+  if (config.showTimer && track.currentTime != null && track.duration > 0) {
+    // Calculate start timestamp based on current position
+    presence.startTimestamp = Math.floor(Date.now() / 1000) - Math.floor(track.currentTime);
+    presence.endTimestamp = Math.floor(Date.now() / 1000) + Math.floor(track.duration - track.currentTime);
+  }
+
+  // Album art as large image (YouTube Music thumbnail URL)
+  if (config.showAlbumArt && track.thumbnail) {
+    presence.largeImageKey = track.thumbnail;
+    const albumText = sanitize(track.album, 1);
+    if (albumText) presence.largeImageText = albumText;
+  }
+
+  // Small icon — YouTube Music branding
+  presence.smallImageKey = 'https://music.youtube.com/img/on_platform_logo_dark.svg';
+  presence.smallImageText = 'YouTube Music';
+
+  // Buttons
+  const buttons = (config.buttons || [])
+    .filter(b => b.label && b.url && b.url.startsWith('http'))
+    .slice(0, 2);
+
+  // Add "Listen on YouTube Music" button if track URL available and less than 2 buttons
+  if (track.url && buttons.length < 2) {
+    buttons.push({ label: 'YouTube Music에서 듣기', url: track.url });
+  }
+  if (buttons.length > 0) presence.buttons = buttons.slice(0, 2);
+
+  try {
+    await rpcClient.setActivity(presence);
+    console.log('[YTMusic] Presence updated:', track.title, '-', track.artist);
+  } catch (err) {
+    console.error('[YTMusic] setActivity error:', err.message);
+  }
+}
+
+function clearYtMusicPresence() {
+  if (rpcClient && rpcConnected) {
+    rpcClient.clearActivity().catch(() => {});
+  }
+}
+
 // IPC Handlers
 ipcMain.handle('get-store', (_, key) => store.get(key));
 ipcMain.handle('set-store', (_, key, value) => {
@@ -429,6 +630,29 @@ ipcMain.handle('get-app-icons-batch', async (_, processNames) => {
   });
 });
 
+// YouTube Music IPC
+ipcMain.handle('ytmusic-start', () => startYtMusicServer());
+ipcMain.handle('ytmusic-stop', () => stopYtMusicServer());
+ipcMain.handle('ytmusic-get-status', () => ({
+  running: ytMusicServerRunning,
+  port: store.get('ytMusic').port || 8686,
+  currentTrack: ytMusicCurrentTrack,
+  extensionConnected: ytMusicExtensionConnected,
+}));
+ipcMain.handle('ytmusic-set-config', (_, config) => {
+  const current = store.get('ytMusic');
+  const updated = { ...current, ...config };
+  store.set('ytMusic', updated);
+
+  // Restart server if port changed while running
+  if (config.port && config.port !== current.port && ytMusicServerRunning) {
+    stopYtMusicServer();
+    startYtMusicServer();
+  }
+
+  return updated;
+});
+
 // Window controls
 ipcMain.handle('window-minimize', () => mainWindow?.minimize());
 ipcMain.handle('window-maximize', () => {
@@ -489,6 +713,10 @@ app.whenReady().then(() => {
   const autoDetect = store.get('autoDetect');
   if (autoDetect.enabled) startProcessDetection();
 
+  // Start YouTube Music server if enabled
+  const ytConfig = store.get('ytMusic');
+  if (ytConfig.enabled) startYtMusicServer();
+
   // Check for updates after 3 seconds
   setTimeout(checkForUpdates, 3000);
 });
@@ -546,6 +774,7 @@ function checkForUpdates() {
 
 app.on('before-quit', () => {
   app.isQuitting = true;
+  stopYtMusicServer();
   disconnectRPC();
   stopProcessDetection();
 });

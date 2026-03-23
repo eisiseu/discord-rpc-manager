@@ -49,4 +49,25 @@ contextBridge.exposeInMainWorld('electronAPI', {
   shell: {
     openExternal: (url) => ipcRenderer.invoke('shell-open-external', url),
   },
+
+  // YouTube Music
+  ytMusicStart: () => ipcRenderer.invoke('ytmusic-start'),
+  ytMusicStop: () => ipcRenderer.invoke('ytmusic-stop'),
+  ytMusicGetStatus: () => ipcRenderer.invoke('ytmusic-get-status'),
+  ytMusicSetConfig: (config) => ipcRenderer.invoke('ytmusic-set-config', config),
+  onYtMusicUpdate: (callback) => {
+    const handler = (_, data) => callback(data);
+    ipcRenderer.on('ytmusic-update', handler);
+    return () => ipcRenderer.removeListener('ytmusic-update', handler);
+  },
+  onYtMusicServerStatus: (callback) => {
+    const handler = (_, data) => callback(data);
+    ipcRenderer.on('ytmusic-server-status', handler);
+    return () => ipcRenderer.removeListener('ytmusic-server-status', handler);
+  },
+  onYtMusicExtensionStatus: (callback) => {
+    const handler = (_, connected) => callback(connected);
+    ipcRenderer.on('ytmusic-extension-status', handler);
+    return () => ipcRenderer.removeListener('ytmusic-extension-status', handler);
+  },
 });

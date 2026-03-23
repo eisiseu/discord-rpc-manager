@@ -5,6 +5,7 @@ import Activities from './pages/Activities';
 import Presets from './pages/Presets';
 import Profiles from './pages/Profiles';
 import SettingsPage from './pages/SettingsPage';
+import YouTubeMusic from './pages/YouTubeMusic';
 import ActivityForm from './components/Activity/ActivityForm';
 import ToastContainer from './components/Toast';
 import useAppStore from './store/appStore';
@@ -15,6 +16,7 @@ const pages = {
   activities: Activities,
   presets: Presets,
   profiles: Profiles,
+  youtubeMusic: YouTubeMusic,
   settings: SettingsPage,
 };
 

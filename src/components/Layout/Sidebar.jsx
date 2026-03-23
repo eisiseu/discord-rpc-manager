@@ -1,5 +1,5 @@
 import React from 'react';
-import { HiOutlineHome, HiOutlineLightningBolt, HiOutlineCollection, HiOutlineUserGroup, HiOutlineCog } from 'react-icons/hi';
+import { HiOutlineHome, HiOutlineLightningBolt, HiOutlineCollection, HiOutlineUserGroup, HiOutlineCog, HiOutlineMusicNote } from 'react-icons/hi';
 import useAppStore from '../../store/appStore';
 import useLangStore from '../../store/langStore';
 
@@ -12,6 +12,7 @@ export default function Sidebar() {
     { id: 'activities', label: t.nav.activities, icon: HiOutlineLightningBolt },
     { id: 'presets', label: t.nav.presets, icon: HiOutlineCollection },
     { id: 'profiles', label: t.nav.profiles, icon: HiOutlineUserGroup },
+    { id: 'youtubeMusic', label: t.nav.youtubeMusic || 'YouTube Music', icon: HiOutlineMusicNote },
     { id: 'settings', label: t.nav.settings, icon: HiOutlineCog },
   ];
 
