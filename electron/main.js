@@ -33,6 +33,7 @@ let rpcClient = null;
 let rpcConnected = false;
 let processDetectorInterval = null;
 let currentRpcClientId = null; // Track which Client ID is currently connected
+let rpcConnecting = false; // Prevent concurrent connection attempts
 
 // YouTube Music HTTP Server
 let ytMusicServer = null;
@@ -170,10 +171,13 @@ async function connectRPC(overrideClientId = null) {
 
   // Skip reconnect if already connected with the same Client ID
   if (rpcConnected && currentRpcClientId === clientId) return;
+  // Skip if already trying to connect
+  if (rpcConnecting) return;
+  rpcConnecting = true;
 
   try {
     if (rpcClient) {
-      rpcClient.destroy();
+      try { rpcClient.destroy(); } catch { /* ignore */ }
       rpcClient = null;
     }
 
@@ -181,6 +185,7 @@ async function connectRPC(overrideClientId = null) {
 
     rpcClient.on('ready', () => {
       rpcConnected = true;
+      rpcConnecting = false;
       currentRpcClientId = clientId;
       console.log('[RPC] Connected as', rpcClient.user.username, '(App:', clientId, ')');
       mainWindow?.webContents.send('rpc-status', {
@@ -208,6 +213,7 @@ async function connectRPC(overrideClientId = null) {
     await rpcClient.login({ clientId });
   } catch (err) {
     rpcConnected = false;
+    rpcConnecting = false;
     currentRpcClientId = null;
     mainWindow?.webContents.send('rpc-status', { connected: false, error: err.message });
   }
@@ -444,14 +450,18 @@ function stopYtMusicServer() {
 }
 
 async function updateYtMusicPresence(track) {
-  if (!track || !track.isPlaying) {
+  if (!track || !track.title) {
     clearYtMusicPresence();
     return;
   }
 
   const config = store.get('ytMusic');
   const targetClientId = config.clientId || store.get('clientId');
-  if (!targetClientId) return;
+  if (!targetClientId) {
+    console.log('[YTMusic] No Client ID configured, skipping presence update');
+    return;
+  }
+  console.log('[YTMusic] Using Client ID:', targetClientId, '| Connected:', rpcConnected, '| Current:', currentRpcClientId);
 
   // Reconnect with YouTube Music Client ID if needed
   if (targetClientId !== currentRpcClientId) {
@@ -468,23 +478,23 @@ async function updateYtMusicPresence(track) {
   if (details) presence.details = details;
   if (state) presence.state = state;
 
-  // Show elapsed time
-  if (config.showTimer && track.currentTime != null && track.duration > 0) {
-    // Calculate start timestamp based on current position
+  // Show elapsed time (only when playing)
+  if (config.showTimer && track.isPlaying && track.currentTime != null && track.duration > 0) {
     presence.startTimestamp = Math.floor(Date.now() / 1000) - Math.floor(track.currentTime);
     presence.endTimestamp = Math.floor(Date.now() / 1000) + Math.floor(track.duration - track.currentTime);
   }
 
-  // Album art as large image (YouTube Music thumbnail URL)
-  if (config.showAlbumArt && track.thumbnail) {
-    presence.largeImageKey = track.thumbnail;
-    const albumText = sanitize(track.album, 1);
-    if (albumText) presence.largeImageText = albumText;
+  // Album art as large image — prefer i.ytimg.com (Discord-compatible)
+  if (config.showAlbumArt) {
+    const imgUrl = track.videoId
+      ? `https://i.ytimg.com/vi/${track.videoId}/hqdefault.jpg`
+      : track.thumbnail;
+    if (imgUrl) {
+      presence.largeImageKey = imgUrl;
+      const albumText = sanitize(track.album, 1);
+      if (albumText) presence.largeImageText = albumText;
+    }
   }
-
-  // Small icon — YouTube Music branding
-  presence.smallImageKey = 'https://music.youtube.com/img/on_platform_logo_dark.svg';
-  presence.smallImageText = 'YouTube Music';
 
   // Buttons
   const buttons = (config.buttons || [])

@@ -13,6 +13,7 @@ export default function YouTubeMusic() {
   const [editPort, setEditPort] = useState(ytMusic.port || 8686);
   const [editClientId, setEditClientId] = useState(ytMusic.clientId || '');
   const [showSettings, setShowSettings] = useState(false);
+  const [showClientId, setShowClientId] = useState(false);
 
   const yt = t.ytMusic || {};
 
@@ -205,13 +206,24 @@ export default function YouTubeMusic() {
                 {/* Client ID */}
                 <div>
                   <label className="text-xs text-gray-400 block mb-1">{yt.clientIdLabel || 'Discord Client ID (YouTube Music)'}</label>
-                  <input
-                    type="text"
-                    value={editClientId}
-                    onChange={(e) => setEditClientId(e.target.value)}
-                    placeholder={yt.clientIdPlaceholder || 'Leave empty to use default'}
-                    className="input-field w-full"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={editClientId}
+                      onChange={(e) => setEditClientId(e.target.value)}
+                      onFocus={() => setShowClientId(true)}
+                      placeholder={yt.clientIdPlaceholder || 'Leave empty to use default'}
+                      className={`input-field w-full ${editClientId && !showClientId ? 'blur-sm select-none pointer-events-none' : ''}`}
+                    />
+                    {editClientId && !showClientId && (
+                      <button
+                        onClick={() => setShowClientId(true)}
+                        className="absolute inset-0 flex items-center justify-center text-xs text-gray-400 hover:text-white transition-colors"
+                      >
+                        Click to reveal
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Show Album Art */}
