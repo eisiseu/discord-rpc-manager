@@ -4,6 +4,7 @@ const http = require('node:http');
 const RPC = require('discord-rpc');
 const Store = require('electron-store');
 const https = require('node:https');
+const { autoUpdater } = require('electron-updater');
 
 const store = new Store({
   defaults: {
@@ -721,55 +722,52 @@ app.whenReady().then(() => {
   setTimeout(checkForUpdates, 3000);
 });
 
-// Auto-update check via GitHub Releases
+// Auto-update via electron-updater
 function checkForUpdates() {
-  const currentVersion = app.getVersion();
-  const options = {
-    hostname: 'api.github.com',
-    path: '/repos/eisiseu/discord-rpc-manager/releases/latest',
-    headers: { 'User-Agent': 'Discord-RPC-Manager' },
-  };
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
 
-  const req = https.get(options, (res) => {
-    let data = '';
-    res.on('data', (chunk) => { data += chunk; });
-    res.on('end', () => {
-      try {
-        const release = JSON.parse(data);
-        const latestVersion = (release.tag_name || '').replace('v', '');
-        if (!latestVersion || latestVersion === currentVersion) return;
-
-        // Compare versions
-        const current = currentVersion.split('.').map(Number);
-        const latest = latestVersion.split('.').map(Number);
-        const isNewer = latest[0] > current[0] ||
-          (latest[0] === current[0] && latest[1] > current[1]) ||
-          (latest[0] === current[0] && latest[1] === current[1] && latest[2] > current[2]);
-
-        if (!isNewer) return;
-
-        // Find installer asset
-        const asset = (release.assets || []).find(a => a.name.endsWith('.exe'));
-        const downloadUrl = asset?.browser_download_url || release.html_url;
-
-        dialog.showMessageBox(mainWindow, {
-          type: 'info',
-          title: '업데이트 알림',
-          message: `새 버전 v${latestVersion}이 있습니다. (현재: v${currentVersion})`,
-          detail: release.body?.substring(0, 300) || '',
-          buttons: ['다운로드', '나중에'],
-          defaultId: 0,
-        }).then(({ response }) => {
-          if (response === 0) {
-            const { shell } = require('electron');
-            shell.openExternal(downloadUrl);
-          }
-        });
-      } catch { /* ignore parse errors */ }
+  autoUpdater.on('update-available', (info) => {
+    dialog.showMessageBox(mainWindow, {
+      type: 'info',
+      title: '업데이트 알림',
+      message: `새 버전 v${info.version}이 있습니다. (현재: v${app.getVersion()})`,
+      buttons: ['업데이트', '나중에'],
+      defaultId: 0,
+    }).then(({ response }) => {
+      if (response === 0) {
+        autoUpdater.downloadUpdate();
+        mainWindow?.webContents.send('update-status', { status: 'downloading', version: info.version });
+      }
     });
   });
-  req.on('error', () => { /* ignore network errors */ });
-  req.setTimeout(10000, () => req.destroy());
+
+  autoUpdater.on('download-progress', (progress) => {
+    mainWindow?.webContents.send('update-status', {
+      status: 'downloading',
+      percent: Math.round(progress.percent),
+    });
+  });
+
+  autoUpdater.on('update-downloaded', () => {
+    dialog.showMessageBox(mainWindow, {
+      type: 'info',
+      title: '업데이트 준비 완료',
+      message: '업데이트가 다운로드되었습니다. 지금 재시작하시겠습니까?',
+      buttons: ['지금 재시작', '나중에'],
+      defaultId: 0,
+    }).then(({ response }) => {
+      if (response === 0) {
+        autoUpdater.quitAndInstall();
+      }
+    });
+  });
+
+  autoUpdater.on('error', (err) => {
+    console.error('[AutoUpdate] Error:', err.message);
+  });
+
+  autoUpdater.checkForUpdates().catch(() => {});
 }
 
 app.on('before-quit', () => {
