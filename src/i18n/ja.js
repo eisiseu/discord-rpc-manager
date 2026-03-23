@@ -179,6 +179,8 @@ export default {
     step2: 'Chrome拡張機能をインストールしてください',
     step3: 'YouTube Musicで曲を再生してください',
     step4: 'Discordに曲情報が表示されます！',
+    enable: '有効化',
+    disable: '無効化',
   },
   preview: {
     title: 'DISCORDプレビュー',

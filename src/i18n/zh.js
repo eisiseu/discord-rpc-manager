@@ -179,6 +179,8 @@ export default {
     step2: '安装Chrome扩展程序',
     step3: '在YouTube Music上播放歌曲',
     step4: 'Discord将显示歌曲信息！',
+    enable: '启用',
+    disable: '禁用',
   },
   preview: {
     title: 'DISCORD 预览',

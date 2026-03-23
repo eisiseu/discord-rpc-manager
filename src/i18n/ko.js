@@ -188,6 +188,8 @@ export default {
     step2: 'Chrome 확장프로그램을 설치하세요',
     step3: 'YouTube Music에서 곡을 재생하세요',
     step4: 'Discord에 곡 정보가 표시됩니다!',
+    enable: '활성화',
+    disable: '비활성화',
   },
   // Preview
   preview: {

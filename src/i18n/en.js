@@ -179,6 +179,8 @@ export default {
     step2: 'Install the Chrome extension',
     step3: 'Play a song on YouTube Music',
     step4: 'Your Discord will show the track!',
+    enable: 'Enable',
+    disable: 'Disable',
   },
   preview: {
     title: 'DISCORD PREVIEW',

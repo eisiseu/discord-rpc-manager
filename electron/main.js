@@ -538,6 +538,7 @@ function clearYtMusicPresence() {
 }
 
 // IPC Handlers
+ipcMain.handle('get-app-version', () => app.getVersion());
 ipcMain.handle('get-store', (_, key) => store.get(key));
 ipcMain.handle('set-store', (_, key, value) => {
   store.set(key, value);
@@ -749,45 +750,38 @@ app.whenReady().then(() => {
 });
 
 // Auto-update via electron-updater
-// Auto-update listeners registered once at startup
-autoUpdater.autoDownload = false;
+// Auto-update: silently download in background, notify when ready
+autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = false;
 
 autoUpdater.on('update-available', (info) => {
-  dialog.showMessageBox(mainWindow, {
-    type: 'info',
-    title: '업데이트 알림',
-    message: `새 버전 v${info.version}이 있습니다. (현재: v${app.getVersion()})`,
-    detail: '업데이트를 다운로드하시겠습니까?\n다운로드 후 앱이 재시작됩니다.',
-    buttons: ['업데이트', '나중에'],
-    defaultId: 0,
-  }).then(({ response }) => {
-    if (response === 0) {
-      mainWindow?.webContents.send('update-status', { status: 'downloading', version: info.version });
-      autoUpdater.downloadUpdate().catch((err) => {
-        console.error('[AutoUpdate] Download error:', err.message);
-      });
-    }
-  });
+  console.log(`[AutoUpdate] New version available: v${info.version} — downloading in background...`);
+  mainWindow?.webContents.send('update-status', { status: 'downloading', version: info.version });
+});
+
+autoUpdater.on('update-not-available', () => {
+  console.log('[AutoUpdate] Already up to date.');
 });
 
 autoUpdater.on('download-progress', (progress) => {
+  console.log(`[AutoUpdate] Downloading... ${Math.round(progress.percent)}%`);
   mainWindow?.webContents.send('update-status', {
     status: 'downloading',
     percent: Math.round(progress.percent),
   });
 });
 
-autoUpdater.on('update-downloaded', () => {
+autoUpdater.on('update-downloaded', (info) => {
+  mainWindow?.webContents.send('update-status', { status: 'ready', version: info.version });
   dialog.showMessageBox(mainWindow, {
     type: 'info',
     title: '업데이트 준비 완료',
-    message: '다운로드가 완료되었습니다. 지금 재시작하여 설치하시겠습니까?',
+    message: `v${info.version} 업데이트가 준비되었습니다.`,
+    detail: '지금 재시작하면 업데이트가 설치됩니다.',
     buttons: ['지금 재시작', '나중에'],
     defaultId: 0,
   }).then(({ response }) => {
     if (response === 0) {
-      // Force quit then install — ensure app fully closes before installer runs
       app.isQuitting = true;
       stopYtMusicServer();
       if (rpcClient) {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { HiOutlineHome, HiOutlineLightningBolt, HiOutlineCollection, HiOutlineUserGroup, HiOutlineCog, HiOutlineMusicNote } from 'react-icons/hi';
 import useAppStore from '../../store/appStore';
 import useLangStore from '../../store/langStore';
@@ -6,6 +6,14 @@ import useLangStore from '../../store/langStore';
 export default function Sidebar() {
   const { currentPage, setPage, rpcConnected, rpcUser } = useAppStore();
   const { t } = useLangStore();
+  const [appVersion, setAppVersion] = useState('');
+
+  useEffect(() => {
+    const api = window.electronAPI;
+    if (api?.getAppVersion) {
+      api.getAppVersion().then(setAppVersion).catch(() => {});
+    }
+  }, []);
 
   const navItems = [
     { id: 'dashboard', label: t.nav.dashboard, icon: HiOutlineHome },
@@ -27,7 +35,10 @@ export default function Sidebar() {
             </svg>
           </div>
           <div>
-            <h1 className="text-white font-semibold text-sm">{t.sidebar.appName}</h1>
+            <div className="flex items-baseline gap-1.5">
+              <h1 className="text-white font-semibold text-sm">{t.sidebar.appName}</h1>
+              {appVersion && <span className="text-gray-600 text-[10px]">v{appVersion}</span>}
+            </div>
             <p className="text-gray-500 text-xs">{t.sidebar.appSub}</p>
           </div>
         </div>
