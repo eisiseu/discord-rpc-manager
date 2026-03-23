@@ -294,19 +294,17 @@ export default function YouTubeMusic() {
                 {/* Track Info */}
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
                   <p className="text-sm font-semibold text-white truncate leading-tight">
-                    {track?.title || 'YouTube Music'}
+                    {track?.title && track?.artist
+                      ? `${track.title} - ${track.artist}`
+                      : (track?.title || 'YouTube Music')}
                   </p>
-                  {track?.artist && (
-                    <p className="text-xs text-gray-300 truncate leading-tight mt-0.5">{track.artist}</p>
-                  )}
-                  {track?.album && (
-                    <p className="text-xs text-gray-300 truncate leading-tight mt-0.5">{track.album}</p>
-                  )}
-                  {track?.duration > 0 && ytMusic.showTimer && (
-                    <p className="text-xs text-gray-400 leading-tight mt-0.5">
+                  {ytMusic.showTimer && track?.duration > 0 ? (
+                    <p className="text-xs text-gray-300 truncate leading-tight mt-0.5">
                       {formatTime(track.currentTime)} / {formatTime(track.duration)}
                     </p>
-                  )}
+                  ) : track?.artist ? (
+                    <p className="text-xs text-gray-300 truncate leading-tight mt-0.5">{track.artist}</p>
+                  ) : null}
                 </div>
               </div>
             </div>

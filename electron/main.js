@@ -482,15 +482,22 @@ async function updateYtMusicPresence(track) {
 
   const presence = {};
 
-  const details = sanitize(track.title);
-  const state = sanitize(track.artist);
-  if (details) presence.details = details;
-  if (state) presence.state = state;
+  // details: "제목 - 가수"
+  const title = sanitize(track.title);
+  const artist = sanitize(track.artist);
+  if (title && artist) presence.details = `${title} - ${artist}`;
+  else if (title) presence.details = title;
 
-  // Show elapsed time (only when playing)
-  if (config.showTimer && track.isPlaying && track.currentTime != null && track.duration > 0) {
-    presence.startTimestamp = Math.floor(Date.now() / 1000) - Math.floor(track.currentTime);
-    presence.endTimestamp = Math.floor(Date.now() / 1000) + Math.floor(track.duration - track.currentTime);
+  // state: "0:32 / 3:45" (time progress)
+  if (config.showTimer && track.currentTime != null && track.duration > 0) {
+    const fmt = (s) => {
+      const m = Math.floor(s / 60);
+      const sec = Math.floor(s % 60);
+      return `${m}:${sec.toString().padStart(2, '0')}`;
+    };
+    presence.state = `${fmt(track.currentTime)} / ${fmt(track.duration)}`;
+  } else if (artist) {
+    presence.state = artist;
   }
 
   // Album art as large image — prefer i.ytimg.com (Discord-compatible)

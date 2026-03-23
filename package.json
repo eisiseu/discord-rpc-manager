@@ -1,6 +1,6 @@
 {
   "name": "discord-rpc-manager",
-  "version": "1.4.3",
+  "version": "1.4.6",
   "description": "Discord Rich Presence Manager - Custom Activity Dashboard",
   "main": "electron/main.js",
   "scripts": {
