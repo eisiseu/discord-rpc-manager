@@ -456,12 +456,16 @@ function stopYtMusicServer() {
 }
 
 async function updateYtMusicPresence(track) {
+  // Don't update if server is stopped or feature is disabled
+  if (!ytMusicServerRunning) return;
+
   if (!track || !track.title) {
     clearYtMusicPresence();
     return;
   }
 
   const config = store.get('ytMusic');
+  if (!config.enabled) return;
   const targetClientId = config.clientId || store.get('clientId');
   if (!targetClientId) {
     console.log('[YTMusic] No Client ID configured, skipping presence update');
